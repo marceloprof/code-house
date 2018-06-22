@@ -20,12 +20,28 @@ module.exports = function (app) {
     app.get('/products', listProducts);
 
     app.get('/products/form', function (req, res) {
-       res.render('products/form');
+       res.render('products/form', {validationErrors:{}, product:{}});
     });
 
     app.post('/products', function (req, res) {
 
         var product = req.body;
+        req.assert('title', 'Title is required').notEmpty();
+        req.assert('price', 'Price is invalid').isFloat();
+
+        var errors = req.validationErrors();
+
+        if(errors){
+            res.format({
+                html: function () {
+                    res.status(400).render('products/form',{validationErrors:errors, product:product});
+                },
+                json:function(){
+                    res.status(400).json(errors);
+                }
+            });
+            return;
+        }
 
         var connection = app.infra.connectionFactory();
         var productsDAO = new app.infra.ProductsDAO(connection);
